@@ -52,6 +52,7 @@ import {
   getNextDiscountTier,
 } from "../../utils/pricing";
 import "./styles.css";
+import LoadingIcon from "../loadingIcon/LoadingIcon";
 
 interface ProductConfiguratorProps {
   product: Product;
@@ -929,7 +930,7 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
           >
             <div className="price-label">Total Price</div>
             <div className="price-value">
-              {formattedTotal}
+              {isPriceLoading ? <LoadingIcon size={32} /> : formattedTotal}
             </div>
 
             {renderPriceBreakdown()}
