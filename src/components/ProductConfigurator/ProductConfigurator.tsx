@@ -158,8 +158,6 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
 
   const [error, setError] = useState<string | null>(null);
 
-  const [shareUrl, setShareUrl] = useState<string>("");
-
   const containerRef = useRef<HTMLDivElement>(null);
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const lastFocusedElement = useRef<HTMLElement | null>(null);
@@ -180,6 +178,12 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
     }),
     [configId, product.id, selections, selectedAddOns, quantity],
   );
+
+  const shareUrl = useMemo(() => {
+    if (!showShareModal) return "";
+    const encoded = encodeConfigurationToUrl(currentConfig);
+    return `${window.location.origin}${window.location.pathname}?config=${encoded}`;
+  }, [showShareModal, currentConfig]);
 
   const {
     price,
@@ -268,14 +272,6 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
       getAllDrafts().then(setDrafts);
     }
   }, [showDraftModal]);
-
-  useEffect(() => {
-    if (showShareModal) {
-      const encoded = encodeConfigurationToUrl(currentConfig);
-      const url = `${window.location.origin}${window.location.pathname}?config=${encoded}`;
-      setShareUrl(url);
-    }
-  }, [showShareModal, currentConfig]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
