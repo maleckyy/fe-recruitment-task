@@ -415,6 +415,21 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
       });
   }, [shareUrl]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+        event.preventDefault();
+        handleQuickAdd();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleQuickAdd]);
+
   const handleModalClose = useCallback((modalType: "draft" | "share") => {
     if (modalType === "draft") {
       setShowDraftModal(false);
