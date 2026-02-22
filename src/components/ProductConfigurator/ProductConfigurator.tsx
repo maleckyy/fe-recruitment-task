@@ -501,9 +501,18 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
               onClick={() =>
                 !readOnly && handleOptionChange(option.id, choice.value)
               }
+              onKeyDown={(e) => {
+                if (readOnly) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleOptionChange(option.id, choice.value);
+                }
+              }}
               title={choice.label}
               role="radio"
               aria-checked={currentValue === choice.value}
+              aria-label={`${option.name}: ${choice.label}`}
+              tabIndex={0}
             />
           ))}
         </div>
@@ -623,7 +632,7 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
           type="checkbox"
           className="addon-checkbox"
           checked={isSelected}
-          onChange={() => {}}
+          onChange={() => { }}
           disabled={readOnly || !isAvailable}
         />
         <div className="addon-info">
