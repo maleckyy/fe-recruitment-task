@@ -1,4 +1,4 @@
-# Submission: [Your Name]
+# Submission: Patryk Kupfer
 
 ## Time Spent
 
