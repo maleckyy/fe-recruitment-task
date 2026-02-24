@@ -52,6 +52,7 @@ import {
   getNextDiscountTier,
 } from "../../utils/pricing";
 import "./styles.css";
+import LoadingIcon from "../loadingIcon/LoadingIcon";
 
 interface ProductConfiguratorProps {
   product: Product;
@@ -157,8 +158,6 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
 
   const [error, setError] = useState<string | null>(null);
 
-  const [shareUrl, setShareUrl] = useState<string>("");
-
   const containerRef = useRef<HTMLDivElement>(null);
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const lastFocusedElement = useRef<HTMLElement | null>(null);
@@ -179,6 +178,12 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
     }),
     [configId, product.id, selections, selectedAddOns, quantity],
   );
+
+  const shareUrl = useMemo(() => {
+    if (!showShareModal) return "";
+    const encoded = encodeConfigurationToUrl(currentConfig);
+    return `${window.location.origin}${window.location.pathname}?config=${encoded}`;
+  }, [showShareModal, currentConfig]);
 
   const {
     price,
@@ -208,6 +213,10 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
 
     window.addEventListener("resize", handleResize);
     handleResize();
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   useEffect(() => {
@@ -263,14 +272,6 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
       getAllDrafts().then(setDrafts);
     }
   }, [showDraftModal]);
-
-  useEffect(() => {
-    if (showShareModal) {
-      const encoded = encodeConfigurationToUrl(currentConfig);
-      const url = `${window.location.origin}${window.location.pathname}?config=${encoded}`;
-      setShareUrl(url);
-    }
-  }, [showShareModal, currentConfig]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -399,10 +400,15 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
   }, [validation, price, currentConfig, onAddToCart]);
 
   const handleQuickAdd = useCallback(() => {
+    if (!validation?.valid) {
+      setError(validation?.errors[0]?.code || ERROR_CODES.UNKNOWN);
+      return;
+    }
+
     if (price && onAddToCart) {
       onAddToCart(currentConfig, price);
     }
-  }, [price, currentConfig, onAddToCart]);
+  }, [validation, price, currentConfig, onAddToCart]);
 
   const handleCopyShareUrl = useCallback(() => {
     navigator.clipboard
@@ -413,6 +419,21 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
         setError(ERROR_CODES.UNKNOWN);
       });
   }, [shareUrl]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+        event.preventDefault();
+        handleQuickAdd();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleQuickAdd]);
 
   const handleModalClose = useCallback((modalType: "draft" | "share") => {
     if (modalType === "draft") {
@@ -493,17 +514,26 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
           role="radiogroup"
           aria-label={option.name}
         >
-          {option.choices?.map((choice, index) => (
+          {option.choices?.map((choice) => (
             <div
-              key={index}
+              key={choice.id}
               className={`color-swatch ${currentValue === choice.value ? "selected" : ""}`}
               style={{ backgroundColor: choice.colorHex }}
               onClick={() =>
                 !readOnly && handleOptionChange(option.id, choice.value)
               }
+              onKeyDown={(e) => {
+                if (readOnly) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleOptionChange(option.id, choice.value);
+                }
+              }}
               title={choice.label}
               role="radio"
               aria-checked={currentValue === choice.value}
+              aria-label={`${option.name}: ${choice.label}`}
+              tabIndex={0}
             />
           ))}
         </div>
@@ -623,7 +653,7 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
           type="checkbox"
           className="addon-checkbox"
           checked={isSelected}
-          onChange={() => {}}
+          onChange={() => { }}
           disabled={readOnly || !isAvailable}
         />
         <div className="addon-info">
@@ -655,10 +685,10 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
           <span>{formatPrice(price.basePrice, product.currency)}</span>
         </div>
 
-        {price.optionModifiers.map((mod, i) => {
+        {price.optionModifiers.map((mod) => {
           const option = product.options.find((o) => o.id === mod.optionId);
           return (
-            <div className="price-line" key={i}>
+            <div className="price-line" key={mod.optionId}>
               <span>{option?.name || mod.optionId}</span>
               <span>
                 {mod.amount >= 0 ? "+" : ""}
@@ -668,10 +698,10 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
           );
         })}
 
-        {price.addOnCosts.map((cost, i) => {
+        {price.addOnCosts.map((cost) => {
           const addOn = product.addOns.find((a) => a.id === cost.addOnId);
           return (
-            <div className="price-line" key={i}>
+            <div className="price-line" key={cost.addOnId}>
               <span>{addOn?.name || cost.addOnId}</span>
               <span>+{formatPrice(cost.amount, product.currency)}</span>
             </div>
@@ -882,8 +912,8 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
         </div>
       )}
 
-      {validation?.warnings.map((warning, i) => (
-        <div key={i} className="validation-warning">
+      {validation?.warnings.map((warning) => (
+        <div key={warning.optionId} className="validation-warning">
           {warning.message}
         </div>
       ))}
@@ -920,7 +950,7 @@ export const ProductConfigurator: React.FC<ProductConfiguratorProps> = ({
           >
             <div className="price-label">Total Price</div>
             <div className="price-value">
-              {formattedTotal}
+              {isPriceLoading ? <LoadingIcon size={32} /> : formattedTotal}
             </div>
 
             {renderPriceBreakdown()}

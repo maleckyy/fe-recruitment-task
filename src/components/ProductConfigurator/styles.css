@@ -134,6 +134,12 @@
   font-size: 14px;
 }
 
+.color-swatch:focus {
+  outline: 2px solid #3498db;
+  outline-offset: 2px;
+  border-color: #3498db;
+}
+
 /* Quantity Input */
 .quantity-control {
   display: flex;
@@ -162,6 +168,12 @@
 .quantity-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.quantity-btn:focus {
+  outline: 2px solid #3498db;
+  outline-offset: 2px;
+  border-color: #3498db;
 }
 
 .quantity-input {

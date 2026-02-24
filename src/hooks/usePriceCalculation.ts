@@ -28,8 +28,8 @@ export function usePriceCalculation(
   // Track the latest request timestamp
   const latestRequestRef = useRef<number>(0);
 
-  const fetchPrice = useCallback(async () => {
-    if (!config) {
+  const fetchPrice = useCallback(async (configToCalculate: Configuration | null) => {
+    if (!configToCalculate) {
       setPrice(null);
       setFormattedTotal('$0.00');
       return;
@@ -42,13 +42,12 @@ export function usePriceCalculation(
     latestRequestRef.current = requestTime;
 
     try {
-      const response: PriceResponse = await calculatePrice(config, product);
+      const response: PriceResponse = await calculatePrice(configToCalculate, product);
 
-      if (response.timestamp >= latestRequestRef.current) {
+      if (requestTime >= latestRequestRef.current) {
         setPrice(response.breakdown);
         setFormattedTotal(response.formattedTotal);
       }
-
     } catch {
       // Only set error if this is still the latest request
       if (requestTime === latestRequestRef.current) {
@@ -56,21 +55,26 @@ export function usePriceCalculation(
         setPrice(null);
       }
     } finally {
-      setIsLoading(false);
+      if (requestTime === latestRequestRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, [config, product]);
+  }, [product]);
 
-  // Fetch price when config changes
   useEffect(() => {
-    fetchPrice();
-  }, [config?.selections, config?.addOns, config?.quantity]);
+    fetchPrice(config);
+  }, [config, fetchPrice]);
+
+  const refetch = useCallback(() => {
+    fetchPrice(config);
+  }, [config, fetchPrice]);
 
   return {
     price,
     formattedTotal,
     isLoading,
     error,
-    refetch: fetchPrice,
+    refetch,
   };
 }
 
